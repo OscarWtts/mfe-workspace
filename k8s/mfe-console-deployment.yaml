@@ -1,0 +1,19 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: mfe-console
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: mfe-console
+  template:
+    metadata:
+      labels:
+        app: mfe-console
+    spec:
+      containers:
+        - name: mfe-console
+          image: us-central1-docker.pkg.dev/mfe-project-464600/mfe-registry/mfe-console:latest
+          ports:
+            - containerPort: 80

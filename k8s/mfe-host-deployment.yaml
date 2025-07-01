@@ -1,0 +1,19 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: mfe-host
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: mfe-host
+  template:
+    metadata:
+      labels:
+        app: mfe-host
+    spec:
+      containers:
+        - name: mfe-host
+          image: us-central1-docker.pkg.dev/mfe-project-464600/mfe-registry/mfe-host:latest
+          ports:
+            - containerPort: 80
