@@ -19,7 +19,7 @@ const SafeRemoteConsoleApp = () => {
   }, []);
 
   if (hasError) {
-    return <div style={{ color: "red" }}>⚠️ Unable to load Console MFE</div>;
+    return <div style={{ color: "red" }}>⚠️ Unable to load Console MFE!</div>;
   }
 
   if (!RemoteApp) {
