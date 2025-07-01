@@ -29,7 +29,7 @@ jobs:
       - name: Build and push mfe-host
         run: |
           docker build \
-            --build-arg VITE_CONSOLE_REMOTE_URL=http://mfe-console/assets/remoteEntry.js \
+            --build-arg VITE_CONSOLE_REMOTE_URL=http://34.123.45.67/console/assets/remoteEntry.js \
             -t ${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.REPO_NAME }}/mfe-host:latest \
             ./mfe-host
 

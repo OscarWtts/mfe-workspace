@@ -1,0 +1,24 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: mfe-ingress
+  annotations:
+    # No aplican reescrituras complejas
+spec:
+  rules:
+    - http:
+        paths:
+          - path: /console
+            pathType: Prefix
+            backend:
+              service:
+                name: mfe-console
+                port:
+                  number: 80
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: mfe-host
+                port:
+                  number: 80
