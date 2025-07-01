@@ -1,0 +1,29 @@
+{
+  "name": "mfe-workspace",
+  "version": "1.0.0",
+  "license": "MIT",
+  "scripts": {
+    "dev:host": "cd mfe-host && yarn dev",
+    "dev:console": "cd mfe-console && yarn dev",
+    "dev:all": "concurrently \"yarn dev:host\" \"yarn dev:console\"",
+
+    "build:host": "cd mfe-host && yarn build",
+    "build:console": "cd mfe-console && yarn build",
+    "build:all": "yarn build:host && yarn build:console",
+
+    "preview:host": "cd mfe-host && yarn preview --mode development",
+    "preview:console": "cd mfe-console && yarn preview --mode development",
+    "preview:all": "concurrently \"yarn preview:host\" \"yarn preview:console\"",
+
+    "preview:host:prod": "cd mfe-host && yarn preview",
+    "preview:console:prod": "cd mfe-console && yarn preview",
+    "preview:all:prod": "concurrently \"yarn preview:host:prod\" \"yarn preview:console:prod\"",
+
+    "docker:up": "docker-compose up",
+    "docker:build": "docker-compose up --build",
+    "docker:down": "docker-compose down"
+  },
+  "devDependencies": {
+    "concurrently": "^9.2.0"
+  }
+}
