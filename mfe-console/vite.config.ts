@@ -9,6 +9,7 @@ export default defineConfig(({ mode }) => {
   console.log("CONSOLE_VITE_PORT:", env.VITE_PORT);
 
   return {
+    base: '/console/',
     plugins: [
       react(),
       federation({
