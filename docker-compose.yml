@@ -5,12 +5,12 @@ services:
     build:
       context: ./mfe-host
     ports:
-      - "4173:80"
+      - "8080:80"
     container_name: mfe-host
 
   mfe-console:
     build:
       context: ./mfe-console
     ports:
-      - "4174:80"
+      - "8081:80"
     container_name: mfe-console

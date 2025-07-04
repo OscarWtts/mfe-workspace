@@ -11,8 +11,8 @@
     "build:console": "cd mfe-console && yarn build",
     "build:all": "yarn build:host && yarn build:console",
 
-    "preview:host": "cd mfe-host && yarn preview --mode development",
-    "preview:console": "cd mfe-console && yarn preview --mode development",
+    "preview:host": "cd mfe-host && yarn preview",
+    "preview:console": "cd mfe-console && yarn preview",
     "preview:all": "concurrently \"yarn preview:host\" \"yarn preview:console\"",
 
     "preview:host:prod": "cd mfe-host && yarn preview",

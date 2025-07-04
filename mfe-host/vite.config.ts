@@ -6,8 +6,7 @@ import path from "path";
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd(), "");
   console.log("HOST_VITE_MODE:", mode);
-  console.log("HOST_VITE_PORT:", env.VITE_PORT);
-  
+
   return {
     plugins: [
       react(),
@@ -19,7 +18,10 @@ export default defineConfig(({ mode }) => {
       }),
     ],
     server: {
-      port: Number(env.VITE_PORT) || 4173,
+      port: 8080,
+    },
+    preview: {
+      port: 8080,
     },
     build: {
       target: "esnext",

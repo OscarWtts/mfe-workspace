@@ -1,7 +1,9 @@
+import './App.css';
+
 function App() {
   return (
     <div>
-      <h2>FROM CONSOLE</h2>
+      <p>Hello From Console!! </p>
     </div>
   );
 }

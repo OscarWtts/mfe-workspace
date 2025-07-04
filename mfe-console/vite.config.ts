@@ -6,10 +6,10 @@ import path from "path";
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd(), "");
   console.log("CONSOLE_VITE_MODE:", mode);
-  console.log("CONSOLE_VITE_PORT:", env.VITE_PORT);
-
+  console.log("CONSOLE_VITE_BASE_URL",env.VITE_BASE_URL);
+  
   return {
-    base: '/console/',
+    base: env.VITE_BASE_URL || "/",
     plugins: [
       react(),
       federation({
@@ -22,7 +22,10 @@ export default defineConfig(({ mode }) => {
       }),
     ],
     server: {
-      port: Number(env.VITE_PORT) || 4174,
+      port: 8081, // dev mode
+    },
+    preview: {
+      port: 8081, // prod/st mod
     },
     build: {
       target: "esnext",
