@@ -9,6 +9,13 @@ spec:
     - http:
         paths:
           - path: /console
+            pathType: Exact
+            backend:
+              service:
+                name: mfe-console
+                port:
+                  number: 80
+          - path: /console/
             pathType: Prefix
             backend:
               service:
