@@ -8,6 +8,10 @@ WORKDIR /app
 COPY package*.json yarn.lock ./
 RUN yarn install --frozen-lockfile
 
+# Argumento para inyectar la base URL
+ARG VITE_BASE_URL
+ENV VITE_BASE_URL=$VITE_BASE_URL
+
 COPY . .
 
 # Build del MFE (genera el remoteEntry.js)

@@ -37,5 +37,8 @@ jobs:
 
       - name: Build and push mfe-console
         run: |
-          docker build -t ${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.REPO_NAME }}/mfe-console:latest ./mfe-console
+          docker build \
+            --build-arg VITE_BASE_URL=/console/ \
+            -t ${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.REPO_NAME }}/mfe-console:latest \
+            ./mfe-console
           docker push ${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.REPO_NAME }}/mfe-console:latest
