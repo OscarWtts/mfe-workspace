@@ -96,13 +96,14 @@ mfe-workspace/
 ### 📄 `.github/workflows/development.yml` - PARA DESARROLLO
 
 **¿Cuándo se ejecuta?**
-- En cada push a `main` o `develop`
+- En cada push a `main` o `develop` (solo si hay cambios en código relevante)
 - En cada Pull Request
 
 **¿Qué hace?**
 - Solo testing y build
 - NO hace deployment
 - Es para asegurar que el código funciona
+- Se ejecuta solo si hay cambios en mfe-host/, mfe-console/, o dependencias
 
 ---
 
@@ -133,7 +134,7 @@ mfe-workspace/
 ### 🆘 ESCENARIO 3: Algo sale mal
 ```
 1. 🔄 Puedes usar "rollback.yml" (manual)
-2. 🏥 "monitoring.yml" revisa salud cada hora
+2. 🏥 "monitoring.yml" se puede ejecutar manualmente cuando lo necesites
 3. 🛠️ Scripts de diagnóstico disponibles
 ```
 
@@ -145,8 +146,8 @@ mfe-workspace/
 | Archivo | ¿Para qué sirve? | ¿Cuándo se usa? |
 |---------|------------------|-----------------|
 | `ci-cd.yml` | Deployment automático | Solo con tags |
-| `development.yml` | Testing en desarrollo | Cada push |
-| `monitoring.yml` | Revisar salud | Cada hora |
+| `development.yml` | Testing en desarrollo | Solo cambios relevantes |
+| `monitoring.yml` | Revisar salud | Manual (cuando lo necesites) |
 | `deploy-staging.yml` | Deployment manual | Cuando quieras |
 | `rollback.yml` | Volver versión anterior | En emergencias |
 
@@ -188,6 +189,9 @@ npm run health-check
 
 # Probar si las URLs funcionan
 npm run test-endpoints
+
+# Monitoreo manual completo
+npm run monitor
 
 # Ejecutar tests de código
 npm test
@@ -256,6 +260,16 @@ kubectl logs -f deployment/mfe-console
 - Ve a GitHub Actions
 - Ejecuta manualmente "rollback.yml"
 
+### ❓ "Estoy recibiendo muchos emails de GitHub"
+- Los workflows están optimizados para reducir notificaciones
+- Ve a GitHub Settings → Notifications para ajustar
+- Usa comandos manuales: `npm run health-check`
+
+### ❓ "¿Me va a costar dinero usar GitHub Actions?"
+- GitHub da 2,000 minutos gratis por mes
+- Los workflows están optimizados para usar pocos minutos
+- Solo se ejecutan cuando es realmente necesario
+
 ---
 
 ## 🎯 RESUMEN SÚPER SIMPLE
@@ -264,9 +278,48 @@ kubectl logs -f deployment/mfe-console
 2. **Haces push** - Solo se ejecutan tests
 3. **Creas tag** - Se hace deployment automático
 4. **Tu app** está en internet
-5. **Monitoreo** automático revisa que todo funcione
+5. **Monitoreo** manual disponible cuando lo necesites
 
 **¡Eso es todo!** El sistema hace todo el trabajo pesado automáticamente. Tú solo te preocupas por escribir código y crear tags cuando quieras hacer release.
+
+---
+
+## 💰 COSTOS Y OPTIMIZACIONES - ¡Importante!
+
+### 🚨 **LO QUE DEBES SABER SOBRE COSTOS**
+
+**GitHub Actions tiene límites gratuitos:**
+- 2,000 minutos por mes (gratis)
+- Si los superas, se cobra extra
+
+**¿Cómo evitar costos innecesarios?**
+
+1. **Los workflows están optimizados** para ejecutarse solo cuando es necesario
+2. **development.yml** solo se ejecuta si hay cambios en código relevante
+3. **monitoring.yml** está desactivado automáticamente (se ejecuta solo manual)
+4. **ci-cd.yml** solo se ejecuta con tags (releases)
+
+### 📧 **NOTIFICACIONES POR EMAIL**
+
+**¿Recibes muchos emails?**
+- Los workflows están configurados para reducir notificaciones
+- Solo recibes emails en casos importantes (fallos críticos)
+- Puedes desactivar completamente las notificaciones en GitHub Settings
+
+### 🛠️ **COMANDOS PARA MONITOREO MANUAL**
+
+En lugar de monitoreo automático, usa estos comandos cuando necesites:
+
+```bash
+# Revisar salud general (recomendado)
+npm run health-check
+
+# Probar endpoints específicos
+npm run test-endpoints
+
+# Monitoreo manual completo
+npm run monitor
+```
 
 ---
 
