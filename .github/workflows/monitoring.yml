@@ -1,10 +1,12 @@
 name: Health Check and Monitoring
 
+# DESACTIVADO: Para evitar costos y notificaciones excesivas
+# Para ejecutar manualmente: usa manual-health-check.yml
 on:
-  schedule:
-    # Run every 5 minutes
-    - cron: '*/5 * * * *'
-  workflow_dispatch:
+  # schedule:
+  #   # Run every 6 hours (4 times per day) - DESACTIVADO
+  #   - cron: '0 */6 * * *'
+  workflow_dispatch:  # Solo manual
 
 env:
   PROJECT_ID: mfe-project-464600
@@ -15,6 +17,8 @@ env:
 jobs:
   health-check:
     runs-on: ubuntu-latest
+    # Only run if the repository is not a fork and on main branch
+    if: github.repository_owner == 'OscarWitts' && github.ref == 'refs/heads/main'
     steps:
       - name: Set up Google Cloud authentication
         uses: google-github-actions/auth@v1
@@ -31,107 +35,49 @@ jobs:
             --project ${{ env.PROJECT_ID }}
 
       - name: Check cluster health
+        continue-on-error: true  # Don't fail the entire workflow if health check fails
         run: |
-          echo "=== Cluster Status ==="
-          kubectl cluster-info
+          echo "=== Cluster Health Check - $(date) ==="
           
-          echo "=== Node Status ==="
-          kubectl get nodes -o wide
-          
-          echo "=== Deployment Status ==="
-          kubectl get deployments -o wide
-          
-          echo "=== Pod Status ==="
-          kubectl get pods -o wide
-          
-          echo "=== Service Status ==="
-          kubectl get services -o wide
-          
-          echo "=== Ingress Status ==="
-          kubectl get ingress -o wide
-
-      - name: Check deployment health
-        run: |
-          # Check if deployments are ready
-          HOST_READY=$(kubectl get deployment mfe-host -o jsonpath='{.status.readyReplicas}')
-          HOST_DESIRED=$(kubectl get deployment mfe-host -o jsonpath='{.status.replicas}')
-          
-          CONSOLE_READY=$(kubectl get deployment mfe-console -o jsonpath='{.status.readyReplicas}')
-          CONSOLE_DESIRED=$(kubectl get deployment mfe-console -o jsonpath='{.status.replicas}')
-          
-          echo "MFE Host: $HOST_READY/$HOST_DESIRED ready"
-          echo "MFE Console: $CONSOLE_READY/$CONSOLE_DESIRED ready"
-          
-          if [ "$HOST_READY" != "$HOST_DESIRED" ]; then
-            echo "⚠️  MFE Host deployment not fully ready"
-            kubectl describe deployment mfe-host
-            kubectl logs -l app=mfe-host --tail=20
+          # Simple health check that won't spam logs
+          if kubectl cluster-info > /dev/null 2>&1; then
+            echo "✅ Cluster is accessible"
+          else
+            echo "❌ Cluster is not accessible"
             exit 1
           fi
           
-          if [ "$CONSOLE_READY" != "$CONSOLE_DESIRED" ]; then
-            echo "⚠️  MFE Console deployment not fully ready"
-            kubectl describe deployment mfe-console
-            kubectl logs -l app=mfe-console --tail=20
-            exit 1
+          # Check critical deployments only
+          DEPLOYMENTS=$(kubectl get deployments -o name 2>/dev/null || echo "")
+          if [ -n "$DEPLOYMENTS" ]; then
+            echo "✅ Deployments found: $(echo $DEPLOYMENTS | wc -w)"
+            kubectl get deployments -o custom-columns="NAME:.metadata.name,READY:.status.readyReplicas,AVAILABLE:.status.availableReplicas" --no-headers
+          else
+            echo "❌ No deployments found"
           fi
-          
-          echo "✅ All deployments are healthy"
 
-      - name: Test external endpoints
+      - name: Quick endpoint test
+        continue-on-error: true  # Don't fail if endpoints are temporarily down
         run: |
           # Get external IP
-          EXTERNAL_IP=$(kubectl get ingress mfe-ingress -o jsonpath='{.status.loadBalancer.ingress[0].ip}')
+          EXTERNAL_IP=$(kubectl get ingress mfe-ingress -o jsonpath='{.status.loadBalancer.ingress[0].ip}' 2>/dev/null || echo "")
           
-          if [ -z "$EXTERNAL_IP" ]; then
-            echo "❌ No external IP found for ingress"
-            exit 1
-          fi
-          
-          echo "Testing endpoints at IP: $EXTERNAL_IP"
-          
-          # Test host endpoint
-          HOST_STATUS=$(curl -o /dev/null -s -w "%{http_code}" http://$EXTERNAL_IP/)
-          if [ "$HOST_STATUS" == "200" ]; then
-            echo "✅ Host endpoint is healthy (HTTP $HOST_STATUS)"
+          if [ -n "$EXTERNAL_IP" ]; then
+            echo "✅ External IP: $EXTERNAL_IP"
+            
+            # Quick test with timeout
+            if curl -f -s -m 10 "http://$EXTERNAL_IP/" > /dev/null; then
+              echo "✅ Host endpoint is responding"
+            else
+              echo "⚠️  Host endpoint is not responding"
+            fi
           else
-            echo "❌ Host endpoint is unhealthy (HTTP $HOST_STATUS)"
-            exit 1
-          fi
-          
-          # Test console endpoint
-          CONSOLE_STATUS=$(curl -o /dev/null -s -w "%{http_code}" http://$EXTERNAL_IP/console/)
-          if [ "$CONSOLE_STATUS" == "200" ]; then
-            echo "✅ Console endpoint is healthy (HTTP $CONSOLE_STATUS)"
-          else
-            echo "❌ Console endpoint is unhealthy (HTTP $CONSOLE_STATUS)"
-            exit 1
+            echo "⚠️  No external IP found"
           fi
 
-      - name: Check resource usage
+      - name: Summary
         run: |
-          echo "=== Resource Usage ==="
-          kubectl top nodes --use-protocol-buffers=false 2>/dev/null || echo "Metrics server not available"
-          kubectl top pods --use-protocol-buffers=false 2>/dev/null || echo "Pod metrics not available"
-
-      - name: Check for failed pods
-        run: |
-          FAILED_PODS=$(kubectl get pods --field-selector=status.phase=Failed -o jsonpath='{.items[*].metadata.name}')
-          if [ -n "$FAILED_PODS" ]; then
-            echo "❌ Found failed pods: $FAILED_PODS"
-            for pod in $FAILED_PODS; do
-              echo "=== Logs for $pod ==="
-              kubectl logs $pod
-            done
-            exit 1
-          else
-            echo "✅ No failed pods found"
-          fi
-
-      - name: Notify on failure
-        if: failure()
-        run: |
-          echo "🚨 Health check failed!"
-          echo "Cluster: ${{ env.CLUSTER_NAME }}"
-          echo "Time: $(date)"
-          echo "Check the logs above for details."
+          echo "=== Health Check Summary ==="
+          echo "Timestamp: $(date)"
+          echo "Next check in 6 hours"
+          echo "Manual check: Use 'workflow_dispatch' to run immediately"

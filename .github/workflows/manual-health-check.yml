@@ -1,0 +1,139 @@
+name: Manual Health Check
+
+# Este workflow SOLO se ejecuta manualmente
+# No hay schedule automático para evitar costos y notificaciones
+on:
+  workflow_dispatch:
+    inputs:
+      check_type:
+        description: 'Tipo de check a realizar'
+        required: true
+        default: 'basic'
+        type: choice
+        options:
+          - basic
+          - full
+          - endpoints
+
+env:
+  PROJECT_ID: mfe-project-464600
+  REGION: us-central1
+  CLUSTER_NAME: mfe-cluster
+  CLUSTER_ZONE: us-central1
+
+jobs:
+  manual-health-check:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Google Cloud authentication
+        uses: google-github-actions/auth@v1
+        with:
+          credentials_json: ${{ secrets.GCP_CREDENTIALS }}
+
+      - name: Set up Cloud SDK
+        uses: google-github-actions/setup-gcloud@v1
+
+      - name: Get GKE credentials
+        run: |
+          gcloud container clusters get-credentials ${{ env.CLUSTER_NAME }} \
+            --zone ${{ env.CLUSTER_ZONE }} \
+            --project ${{ env.PROJECT_ID }}
+
+      - name: Basic Health Check
+        if: ${{ inputs.check_type == 'basic' }}
+        run: |
+          echo "🔍 BASIC HEALTH CHECK"
+          echo "========================="
+          
+          # Cluster connectivity
+          if kubectl cluster-info > /dev/null 2>&1; then
+            echo "✅ Cluster: Connected"
+          else
+            echo "❌ Cluster: Not accessible"
+            exit 1
+          fi
+          
+          # Deployments
+          DEPLOYMENTS=$(kubectl get deployments --no-headers 2>/dev/null | wc -l)
+          echo "📊 Deployments: $DEPLOYMENTS found"
+          
+          # Pods
+          RUNNING_PODS=$(kubectl get pods --field-selector=status.phase=Running --no-headers 2>/dev/null | wc -l)
+          echo "🏃 Running Pods: $RUNNING_PODS"
+          
+          # Services
+          SERVICES=$(kubectl get services --no-headers 2>/dev/null | wc -l)
+          echo "🌐 Services: $SERVICES found"
+          
+          echo "✅ Basic health check completed"
+
+      - name: Full Health Check
+        if: ${{ inputs.check_type == 'full' }}
+        run: |
+          echo "🔍 FULL HEALTH CHECK"
+          echo "========================="
+          
+          echo "=== Cluster Info ==="
+          kubectl cluster-info
+          
+          echo "=== Deployments ==="
+          kubectl get deployments -o wide
+          
+          echo "=== Pods ==="
+          kubectl get pods -o wide
+          
+          echo "=== Services ==="
+          kubectl get services -o wide
+          
+          echo "=== Ingress ==="
+          kubectl get ingress -o wide
+          
+          echo "=== Recent Events ==="
+          kubectl get events --sort-by=.metadata.creationTimestamp
+
+      - name: Endpoints Check
+        if: ${{ inputs.check_type == 'endpoints' }}
+        run: |
+          echo "🔍 ENDPOINTS CHECK"
+          echo "========================="
+          
+          # Get external IP
+          EXTERNAL_IP=$(kubectl get ingress mfe-ingress -o jsonpath='{.status.loadBalancer.ingress[0].ip}' 2>/dev/null || echo "")
+          
+          if [ -n "$EXTERNAL_IP" ]; then
+            echo "🌐 External IP: $EXTERNAL_IP"
+            
+            # Test host endpoint
+            echo "Testing host endpoint..."
+            if curl -f -s -m 10 "http://$EXTERNAL_IP/" > /dev/null; then
+              echo "✅ Host: http://$EXTERNAL_IP/ - OK"
+            else
+              echo "❌ Host: http://$EXTERNAL_IP/ - FAILED"
+            fi
+            
+            # Test console endpoint
+            echo "Testing console endpoint..."
+            if curl -f -s -m 10 "http://$EXTERNAL_IP/console/" > /dev/null; then
+              echo "✅ Console: http://$EXTERNAL_IP/console/ - OK"
+            else
+              echo "❌ Console: http://$EXTERNAL_IP/console/ - FAILED"
+            fi
+          else
+            echo "❌ No external IP found"
+          fi
+
+      - name: Health Check Summary
+        run: |
+          echo "📋 HEALTH CHECK SUMMARY"
+          echo "========================="
+          echo "✅ Manual health check completed"
+          echo "⏰ Timestamp: $(date)"
+          echo "🔧 Check type: ${{ inputs.check_type }}"
+          echo ""
+          echo "💡 Para más checks:"
+          echo "   - Ejecuta este workflow manualmente"
+          echo "   - Usa: npm run health-check (localmente)"
+          echo "   - Usa: npm run test-endpoints (localmente)"
