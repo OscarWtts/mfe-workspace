@@ -60,10 +60,7 @@ jobs:
           cd ${{ matrix.app }}
           npm run lint
 
-      - name: Run tests
-        run: |
-          cd ${{ matrix.app }}
-          npm test -- --watchAll=false --coverage
+      # Removed 'Run tests' step as no tests are configured
 
       - name: Build application
         run: |
