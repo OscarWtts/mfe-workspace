@@ -35,9 +35,10 @@ This document provides a comprehensive guide for the micro-frontend (MFE) deploy
 ### 1. Docker Configuration
 
 #### MFE Host Dockerfile
+
 ```dockerfile
 # Multi-stage build for production optimization
-FROM node:18-alpine AS builder
+FROM node:22-alpine AS builder
 WORKDIR /app
 COPY package*.json ./
 RUN npm ci
@@ -54,8 +55,9 @@ CMD ["nginx", "-g", "daemon off;"]
 ```
 
 #### MFE Console Dockerfile
+
 ```dockerfile
-FROM node:18-alpine AS builder
+FROM node:22-alpine AS builder
 WORKDIR /app
 COPY package*.json ./
 RUN npm ci
