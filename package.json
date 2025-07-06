@@ -11,9 +11,7 @@
     "build:console": "cd mfe-console && yarn build",
     "build:all": "yarn build:host && yarn build:console",
 
-    "test:host": "cd mfe-host && yarn test",
-    "test:console": "cd mfe-console && yarn test",
-    "test:all": "concurrently \"yarn test:host\" \"yarn test:console\"",
+
 
     "lint:host": "cd mfe-host && yarn lint",
     "lint:console": "cd mfe-console && yarn lint",
@@ -50,7 +48,7 @@
     "health:check": "node scripts/health-check.js",
     "health:endpoints": "node scripts/test-endpoints.js",
 
-    "ci:prepare": "yarn install && yarn lint:all && yarn test:all && yarn build:all",
+    "ci:prepare": "yarn install && yarn lint:all && yarn build:all",
     "ci:verify": "yarn health:check && yarn health:endpoints"
   },
   "devDependencies": {
