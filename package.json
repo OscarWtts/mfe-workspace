@@ -21,7 +21,7 @@
 
     "preview:host": "cd mfe-host && yarn preview",
     "preview:console": "cd mfe-console && yarn preview",
-    "preview:all": "concurrently \"yarn preview:host\" \"yarn preview:console\"",
+    "preview:all": "yarn build:all && concurrently \"yarn preview:host\" \"yarn preview:console\"",
 
     "preview:host:prod": "cd mfe-host && yarn preview",
     "preview:console:prod": "cd mfe-console && yarn preview",
