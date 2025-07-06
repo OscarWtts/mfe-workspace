@@ -1,0 +1,100 @@
+name: Rollback Deployment
+
+on:
+  workflow_dispatch:
+    inputs:
+      deployment:
+        description: 'Deployment to rollback'
+        required: true
+        type: choice
+        options:
+        - mfe-host
+        - mfe-console
+        - both
+      revision:
+        description: 'Revision number to rollback to (leave empty for previous)'
+        required: false
+        type: string
+
+jobs:
+  rollback:
+    runs-on: ubuntu-latest
+
+    env:
+      PROJECT_ID: mfe-project-464600
+      REGION: us-central1
+      CLUSTER_NAME: mfe-cluster
+      CLUSTER_ZONE: us-central1
+
+    steps:
+      - name: Set up Google Cloud authentication
+        uses: google-github-actions/auth@v1
+        with:
+          credentials_json: ${{ secrets.GCP_CREDENTIALS }}
+
+      - name: Set up Cloud SDK
+        uses: google-github-actions/setup-gcloud@v1
+
+      - name: Get GKE credentials
+        run: |
+          gcloud container clusters get-credentials ${{ env.CLUSTER_NAME }} \
+            --zone ${{ env.CLUSTER_ZONE }} \
+            --project ${{ env.PROJECT_ID }}
+
+      - name: Show current deployment history
+        run: |
+          if [[ "${{ github.event.inputs.deployment }}" == "mfe-host" || "${{ github.event.inputs.deployment }}" == "both" ]]; then
+            echo "=== MFE-Host Deployment History ==="
+            kubectl rollout history deployment/mfe-host
+          fi
+          
+          if [[ "${{ github.event.inputs.deployment }}" == "mfe-console" || "${{ github.event.inputs.deployment }}" == "both" ]]; then
+            echo "=== MFE-Console Deployment History ==="
+            kubectl rollout history deployment/mfe-console
+          fi
+
+      - name: Rollback mfe-host
+        if: ${{ github.event.inputs.deployment == 'mfe-host' || github.event.inputs.deployment == 'both' }}
+        run: |
+          if [ -n "${{ github.event.inputs.revision }}" ]; then
+            echo "Rolling back mfe-host to revision ${{ github.event.inputs.revision }}"
+            kubectl rollout undo deployment/mfe-host --to-revision=${{ github.event.inputs.revision }}
+          else
+            echo "Rolling back mfe-host to previous revision"
+            kubectl rollout undo deployment/mfe-host
+          fi
+
+      - name: Rollback mfe-console
+        if: ${{ github.event.inputs.deployment == 'mfe-console' || github.event.inputs.deployment == 'both' }}
+        run: |
+          if [ -n "${{ github.event.inputs.revision }}" ]; then
+            echo "Rolling back mfe-console to revision ${{ github.event.inputs.revision }}"
+            kubectl rollout undo deployment/mfe-console --to-revision=${{ github.event.inputs.revision }}
+          else
+            echo "Rolling back mfe-console to previous revision"
+            kubectl rollout undo deployment/mfe-console
+          fi
+
+      - name: Wait for rollback to complete
+        run: |
+          if [[ "${{ github.event.inputs.deployment }}" == "mfe-host" || "${{ github.event.inputs.deployment }}" == "both" ]]; then
+            echo "Waiting for mfe-host rollback to complete..."
+            kubectl rollout status deployment/mfe-host --timeout=300s
+          fi
+          
+          if [[ "${{ github.event.inputs.deployment }}" == "mfe-console" || "${{ github.event.inputs.deployment }}" == "both" ]]; then
+            echo "Waiting for mfe-console rollback to complete..."
+            kubectl rollout status deployment/mfe-console --timeout=300s
+          fi
+
+      - name: Verify rollback
+        run: |
+          echo "=== Post-Rollback Status ==="
+          kubectl get deployments -o wide
+          echo ""
+          kubectl get pods -o wide
+          echo ""
+          echo "=== Testing endpoints ==="
+          EXTERNAL_IP=$(kubectl get ingress mfe-ingress -o jsonpath='{.status.loadBalancer.ingress[0].ip}')
+          curl -I http://$EXTERNAL_IP/ || echo "Host endpoint test failed"
+          curl -I http://$EXTERNAL_IP/console/ || echo "Console endpoint test failed"

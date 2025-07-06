@@ -11,6 +11,14 @@
     "build:console": "cd mfe-console && yarn build",
     "build:all": "yarn build:host && yarn build:console",
 
+    "test:host": "cd mfe-host && yarn test",
+    "test:console": "cd mfe-console && yarn test",
+    "test:all": "concurrently \"yarn test:host\" \"yarn test:console\"",
+
+    "lint:host": "cd mfe-host && yarn lint",
+    "lint:console": "cd mfe-console && yarn lint",
+    "lint:all": "concurrently \"yarn lint:host\" \"yarn lint:console\"",
+
     "preview:host": "cd mfe-host && yarn preview",
     "preview:console": "cd mfe-console && yarn preview",
     "preview:all": "concurrently \"yarn preview:host\" \"yarn preview:console\"",
@@ -21,7 +29,29 @@
 
     "docker:up": "docker-compose up",
     "docker:build": "docker-compose up --build",
-    "docker:down": "docker-compose down"
+    "docker:down": "docker-compose down",
+    "docker:logs": "docker-compose logs -f",
+
+    "deploy": "bash deploy.sh",
+    "deploy:host": "bash deploy.sh mfe-host",
+    "deploy:console": "bash deploy.sh mfe-console",
+    "deploy:build-only": "bash deploy.sh --build-only",
+    "deploy:deploy-only": "bash deploy.sh --deploy-only",
+    "deploy:verify": "bash deploy.sh --verify-only",
+
+    "k8s:status": "kubectl get deployments,pods,services,ingress",
+    "k8s:logs:host": "kubectl logs -l app=mfe-host --tail=100",
+    "k8s:logs:console": "kubectl logs -l app=mfe-console --tail=100",
+    "k8s:describe:host": "kubectl describe deployment mfe-host",
+    "k8s:describe:console": "kubectl describe deployment mfe-console",
+    "k8s:rollout:host": "kubectl rollout restart deployment/mfe-host",
+    "k8s:rollout:console": "kubectl rollout restart deployment/mfe-console",
+
+    "health:check": "node scripts/health-check.js",
+    "health:endpoints": "node scripts/test-endpoints.js",
+
+    "ci:prepare": "yarn install && yarn lint:all && yarn test:all && yarn build:all",
+    "ci:verify": "yarn health:check && yarn health:endpoints"
   },
   "devDependencies": {
     "concurrently": "^9.2.0"

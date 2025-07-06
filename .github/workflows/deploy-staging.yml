@@ -1,0 +1,95 @@
+name: Deploy to Staging
+
+on:
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Environment to deploy to'
+        required: true
+        default: 'staging'
+        type: choice
+        options:
+        - staging
+        - production
+      force_restart:
+        description: 'Force restart deployments'
+        required: false
+        default: true
+        type: boolean
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    env:
+      PROJECT_ID: mfe-project-464600
+      REGION: us-central1
+      CLUSTER_NAME: mfe-cluster
+      CLUSTER_ZONE: us-central1
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Set up Google Cloud authentication
+        uses: google-github-actions/auth@v1
+        with:
+          credentials_json: ${{ secrets.GCP_CREDENTIALS }}
+
+      - name: Set up Cloud SDK
+        uses: google-github-actions/setup-gcloud@v1
+
+      - name: Get GKE credentials
+        run: |
+          gcloud container clusters get-credentials ${{ env.CLUSTER_NAME }} \
+            --zone ${{ env.CLUSTER_ZONE }} \
+            --project ${{ env.PROJECT_ID }}
+
+      - name: Deploy to GKE
+        run: |
+          echo "Deploying to ${{ github.event.inputs.environment }} environment"
+          # Apply all Kubernetes manifests
+          kubectl apply -f k8s/
+
+      - name: Restart deployments (if requested)
+        if: ${{ github.event.inputs.force_restart == 'true' }}
+        run: |
+          echo "Force restarting deployments to pull latest images"
+          kubectl rollout restart deployment/mfe-host
+          kubectl rollout restart deployment/mfe-console
+
+      - name: Wait for deployments to be ready
+        run: |
+          kubectl rollout status deployment/mfe-host --timeout=300s
+          kubectl rollout status deployment/mfe-console --timeout=300s
+
+      - name: Verify deployment
+        run: |
+          echo "=== Final Deployment Status ==="
+          kubectl get deployments -o wide
+          echo ""
+          echo "=== Pods Status ==="
+          kubectl get pods -o wide
+          echo ""
+          echo "=== Services ==="
+          kubectl get services
+          echo ""
+          echo "=== Ingress ==="
+          kubectl get ingress
+          echo ""
+          echo "=== Ingress Details ==="
+          kubectl describe ingress mfe-ingress
+
+      - name: Test endpoints
+        run: |
+          # Get the external IP
+          EXTERNAL_IP=$(kubectl get ingress mfe-ingress -o jsonpath='{.status.loadBalancer.ingress[0].ip}')
+          echo "Testing endpoints at IP: $EXTERNAL_IP"
+          
+          # Test host endpoint
+          echo "Testing host endpoint..."
+          curl -I http://$EXTERNAL_IP/ || echo "Host endpoint test failed"
+          
+          # Test console endpoint
+          echo "Testing console endpoint..."
+          curl -I http://$EXTERNAL_IP/console/ || echo "Console endpoint test failed"
