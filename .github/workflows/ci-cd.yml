@@ -108,11 +108,13 @@ jobs:
       - name: Build and push ${{ matrix.app }}
         run: |
           IMAGE_URI="${{ env.REGISTRY_HOST }}/${{ env.PROJECT_ID }}/${{ env.REPO_NAME }}/${{ matrix.app }}:${{ steps.image-tag.outputs.tag }}"
+          BUILD_ARGS=""
           if [ -n "${{ matrix.build-args }}" ]; then
-            docker build --build-arg ${{ matrix.build-args }} -t $IMAGE_URI ./${{ matrix.app }}
-          else
-            docker build -t $IMAGE_URI ./${{ matrix.app }}
+            while IFS= read -r arg; do
+              [ -n "$arg" ] && BUILD_ARGS="$BUILD_ARGS --build-arg $arg"
+            done <<< "${{ matrix.build-args }}"
           fi
+          docker build $BUILD_ARGS -t $IMAGE_URI ./${{ matrix.app }}
           docker push $IMAGE_URI
           echo "Built and pushed: $IMAGE_URI"
 
