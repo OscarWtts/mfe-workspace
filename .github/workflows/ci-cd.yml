@@ -181,14 +181,14 @@ jobs:
 
       - name: Test endpoints
         run: |
-          # Wait for ingress to be ready
+          # Wait for ingress to be ready, but ignore timeout errors
           echo "Waiting for ingress to be ready..."
-          kubectl wait --for=condition=Ready ingress/mfe-ingress --timeout=300s
-          
+          kubectl wait --for=condition=Ready ingress/mfe-ingress --timeout=300s || echo "[WARN] Timeout waiting for ingress readiness, continuing..."
+
           # Get the external IP
           EXTERNAL_IP=$(kubectl get ingress mfe-ingress -o jsonpath='{.status.loadBalancer.ingress[0].ip}')
           echo "External IP: $EXTERNAL_IP"
-          
+
           # Test endpoints with retries
           echo "Testing host endpoint..."
           for i in {1..5}; do
@@ -200,7 +200,7 @@ jobs:
               sleep 10
             fi
           done
-          
+
           echo "Testing console endpoint..."
           for i in {1..5}; do
             if curl -f -s -I http://$EXTERNAL_IP/console/ > /dev/null; then
