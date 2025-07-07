@@ -3,7 +3,8 @@ kind: Ingress
 metadata:
   name: mfe-ingress
   annotations:
-    # No aplican reescrituras complejas
+    kubernetes.io/ingress.class: "gce"
+    # Puedes agregar más anotaciones aquí si usas IP estática, certificados, etc.
 spec:
   rules:
     - http:
